@@ -1,3 +1,11 @@
+
+# TO DO
+#   - Turn resulting data into DF
+#   - Test additional handles for stability
+#   - Scale into something that can run over handles dataset
+#   - Set up raspberry pi to do it.
+
+
 import requests
 from lxml import html
 from bs4 import BeautifulSoup
