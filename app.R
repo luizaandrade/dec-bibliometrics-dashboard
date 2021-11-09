@@ -1,6 +1,9 @@
-require(shiny)
-require(shinythemes)
+library(shiny)
+library(shinydashboard)
+library(shinycssloaders)
 library(shinyWidgets)
+library(bs4Dash)
+library(fresh)
 require(DT)
 require(here)
 require(plotly)
@@ -11,82 +14,216 @@ papers <-
   read_rds(here("data", "papers-and-authors.rds"))
 
 
-ui <- fluidPage(
+ui <- 
   
-  sidebarLayout(
-    
-    sidebarPanel(
-      
-      width = 2,
-      
-      sliderTextInput(
-        "years", 
-        "Period",
-        choices = seq(min(papers$year_scholar, na.rm = TRUE),
-                      max(papers$year_scholar, na.rm = TRUE),
-                      1),
-        selected = c(min(papers$year_scholar, na.rm = TRUE),
-                     max(papers$year_scholar, na.rm = TRUE))
+  dashboardPage(
+    skin = "black",
+    freshTheme = create_theme(bs4dash_layout(sidebar_width = "350px")),
+
+    dashboardHeader(
+  
+      title = dashboardBrand(
+        title = "DECRG bibliometrics",
+        color = "info"
       ),
+      skin = "light",
+      status = "white",
+      border = TRUE,
+      sidebarIcon = icon("bars"),
+      controlbarIcon = icon("th"),
+      fixed = FALSE
       
+    ),
+    
+# Side bar -------------------------------------------------------------------- 
+    
+    dashboardSidebar(
+      
+      width = 450,
+      status = "info", 
+      skin = "light", 
+      elevation = 5, 
+              
+## Menu ------------------------------------------------------------------
+     
+     sidebarMenu(
+       menuItem("Home", tabName = "home", icon = icon("bookmark")),
+       menuItem("Visualization", tabName = "viz", icon = icon("chart-bar")),
+       menuItem("Data", tabName = "data", icon = icon("table"))
+     ),
+     
+ ## Filters --------------------------------------------------------------
+ 
+    hr(),
+
+ ### Years -------------------------------------------------------------- 
+
+     sliderTextInput(
+       "years",
+       "Period",
+       choices = seq(min(papers$year_scholar, na.rm = TRUE),
+                     max(papers$year_scholar, na.rm = TRUE),
+                     1),
+       selected = c(min(papers$year_scholar, na.rm = TRUE),
+                    max(papers$year_scholar, na.rm = TRUE))
+     ),
+
+### Unit ---------------------------------------------------------------
+     
+
       checkboxGroupButtons(
-        "unit",
-        "Unit",
+        inputId = "unit",
+        label = "Unit",
         choices = papers$unit %>% unique %>% na.omit,
         selected = papers$unit %>% unique %>% na.omit,
-        status = "primary",
-        individual = TRUE,
+        individual= TRUE,
         checkIcon = list(
           yes = icon("ok",
                      lib = "glyphicon"),
           no = icon("remove",
-                    lib = "glyphicon"))
+                    lib = "glyphicon")
+          )
       ),
-      
-      pickerInput(
-        "staff",
-        label = "Staff",
-        choices = list(
-          `DECFP` = papers %>% filter(unit == "DECFP") %>% select(full_name) %>% unique %>% unlist %>% unname,
-          `DECTI` = papers %>% filter(unit == "DECTI") %>% select(full_name) %>% unique %>% unlist %>% unname,
-          `DECPI` = papers %>% filter(unit == "DECPI") %>% select(full_name) %>% unique %>% unlist %>% unname,
-          `DECHD` = papers %>% filter(unit == "DECHD") %>% select(full_name) %>% unique %>% unlist %>% unname,
-          `DECSI` = papers %>% filter(unit == "DECSI") %>% select(full_name) %>% unique %>% unlist %>% unname,
-          `DECMG` = papers %>% filter(unit == "DECMG") %>% select(full_name) %>% unique %>% unlist %>% unname
-        ),
-        selected = papers %>% select(full_name) %>% unique %>% unlist %>% unname,
-        multiple = TRUE,
-        options = list(
-          `live-search` = TRUE,
-          size = 25,
-          title = "Select names"
-        ),
-        width = "100%"
-      )
-      
+     
+### People  ------------------------------------------------------------------
+     pickerInput(
+       "staff",
+       label = "Staff",
+       choices = list(
+         `DECFP` = papers %>% filter(unit == "DECFP") %>% select(full_name) %>% unique %>% unlist %>% unname,
+         `DECTI` = papers %>% filter(unit == "DECTI") %>% select(full_name) %>% unique %>% unlist %>% unname,
+         `DECPI` = papers %>% filter(unit == "DECPI") %>% select(full_name) %>% unique %>% unlist %>% unname,
+         `DECHD` = papers %>% filter(unit == "DECHD") %>% select(full_name) %>% unique %>% unlist %>% unname,
+         `DECSI` = papers %>% filter(unit == "DECSI") %>% select(full_name) %>% unique %>% unlist %>% unname,
+         `DECMG` = papers %>% filter(unit == "DECMG") %>% select(full_name) %>% unique %>% unlist %>% unname
+       ),
+       selected = papers %>% select(full_name) %>% unique %>% unlist %>% unname,
+       multiple = TRUE,
+       options = list(
+         `live-search` = TRUE,
+         size = 25,
+         title = "Select names"
+       ),
+       width = "100%"
+     )
     ),
     
-    mainPanel(
-      width = 9,
+# Body -------------------------------------------------------------------------
+    
+    dashboardBody(
       
-      fluidRow(
-                column(
-                  width = 6,
-                  plotlyOutput("citation_graph")
-                ),
-                column(
-                  width = 6,
-                  plotlyOutput("download_graph")
-                )
+      tabItems(
+
+## Home  -----------------------------------------------------------------------
+        
+        tabItem(
+          tabName = "home",
+          
+          fluidRow(
+            
+            box(
+              width = 12, 
+              status = "info", 
+              collapsible = FALSE,
+              solidHeader = TRUE,
+              title = h2("DECRG BIBLIOMETRICS DASHBOARD"),
+                    
+              p("This dashboard presents information about publications about publications from authors affiliated 
+                with the Development Research Group of the World Bank, including number of downloads and citations.
+                The data used was collected from the World Banks' Documents and Reports page and from Google Scholar."
               ),
+            
+              h3("How to use this dashboard"),
               
-              fluidRow(
-                dataTableOutput('table')
+              p(
+                "Use the icons in the sidebar to navigate through different pages. The ",
+                tags$b("Visualization"),
+                "page contains interactive plots with the evolution of the total number of downloads and citations
+                over time. The ",
+                tags$b("Data"),
+                "page allows users to browse and download the data feeding into the graphs."
               )
+            ),
+            
+            box(
+              width = 12, 
+              status = "warning", 
+              collapsible = TRUE,
+              title = "Disclaimer",
+              solidHeader = TRUE,
+              
+              p(
+                "The data in this dashboard was obtained by scraping the internet, and is not exhaustive.
+                In particular, only staff with valid Google Scholar accounts was included in the calculation of 
+                citations, and downloads from SSRN and OKR are not currently taken into account.
+                To have your Google Scholar page added to the dashboard sources or correct information listed, 
+                please contact",
+                tags$a(href = "mailto:dimeanalytics@worldbank.org", "DIME Analytics"),
+                "."
+              )
+            ),
+            
+            box(
+              width = 12, 
+              status = "secondary", 
+              collapsible = TRUE,
+              collapsed = TRUE,
+              title = "Contributors",
+              solidHeader = TRUE,
+              
+              p(
+                "This dashboard was developed by Luiza Cardoso de Andrade and 
+                Rony Rodrigo Maximiliano Rodriguez-Ramirez.
+                Roula Yazigi and Ryan Hahn contributed with data and background information on the publications."
+              )
+            )
+            
+          )
+        ),
+
+## Graphs ----------------------------------------------------------------------
+
+        tabItem(
+          tabName = "viz",
+          
+          fluidRow(
+            box(
+              width = 10,
+              title = "Number of citations",
+              plotlyOutput("citation_graph", height = "350px")
+            )
+          ),
+            
+          fluidRow(
+            box(
+              width = 10,
+              title = "Number of downloads",
+              plotlyOutput("download_graph", height = "350px")
+            )
+          )
+        ),
+
+## Data table ------------------------------------------------------------------        
+
+        tabItem(
+          
+          tabName = "data",
+          
+          fluidRow(
+            box(
+              title = "Browse data",
+              collapsible = FALSE,
+              width = 12,
+              dataTableOutput('table')
+            )
+          )
+          
+        )
+      )
+      
     )
   )
-  
-)
+
 
 server <- function(input, output, session) {
   
@@ -124,118 +261,84 @@ server <- function(input, output, session) {
   output$citation_graph <-
     renderPlotly({
       
-      data <-
-        data() %>%
-        group_by(year_scholar) %>%
-        mutate(year_id = order(title),
-               total_cites = sum(cites),
-               year_scholar = as.factor(year_scholar)) %>%
-        arrange(year_scholar) %>%
-        mutate(end = cumsum(cites),
-               start = end - cites) %>%
-        filter(cites != 0,
-               !is.na(cites))
-      
       graph <-
-        ggplot(data,
-               aes(x = year_scholar,
-                   y = start,
-                   yend = end,
-                   xend = year_scholar,
-                   label = total_cites,
-                   text = paste0(title, "<br>",
-                                 all_authors, "<br>",
-                                 journal, "<br>",
-                                 "Citations: ", cites)
-        )) +
-        geom_segment(
-          data = data %>% filter(cites < 1000),
-          aes(color = year_id),
-          size = 5, 
-          lineend = "butt"
+        data() %>%
+        mutate(fill = ifelse(cites < 1000,
+                             "less",
+                             "more")) %>%
+        filter(cites != 0,
+               !is.na(cites)) %>%
+        ggplot(
+          aes(
+            x = year_scholar,
+            fill = fill,
+            text = paste0(title, "<br>",
+                          all_authors, "<br>",
+                          journal, "<br>",
+                          "Citations: ", cites)
+          )
         ) +
-        geom_segment(
-          data = data %>% filter(cites >= 1000),
-          aes(alpha = title),
-          size = 5, 
-          lineend = "butt",
-          color = "red"
+        geom_col(
+          aes(
+            y = cites
+          )
         ) +
-        geom_text(aes(y = total_cites + 1000),
-                  size = 2.5) +
-        scale_color_gradient(low = "gray30",
-                             high = " gray90") +
+        scale_fill_manual(values = c("less" = "gray60",
+                                     "more" = "#EA4C46")) +
         labs(x = NULL,
-             y = NULL,
-             title = "Number of citations") +
+             y = NULL) +
         theme_minimal() +
         theme(legend.position = "none",
-              axis.text = element_text(size = 8),
               panel.grid.minor.x = element_blank(),
               panel.grid.major.x = element_blank(),
               panel.grid.minor.y = element_blank()) 
       
       ggplotly(graph,
                tooltip = "text")
+      
     })
 
   output$download_graph <-
     renderPlotly({
-
-      data <-
-        data() %>%
-        group_by(year_scholar) %>%
-        mutate(year_id = order(title),
-               download_count = download_count/1000,
-               total_downloads = sum(download_count, na.rm = TRUE),
-               year_scholar = as.factor(year_scholar)) %>%
-        arrange(year_scholar) %>%
-        mutate(end = cumsum(download_count),
-               start = end - download_count) %>%
-        filter(download_count != 0,
-               !is.na(download_count))
-
+      
       graph <-
-        ggplot(data,
-               aes(y = start,
-                   yend = end,
-                   x = year_scholar,
-                   xend = year_scholar,
-                   label = round(total_downloads, 1) %>% paste0("k"),
-                   text = paste0(title, "<br>",
-                                 all_authors, "<br>",
-                                 journal, "<br>",
-                                 "Downloads: ", download_count)
-               )) +
-        geom_segment(
-          aes(color = year_id),
-          data = data %>% filter(download_count < 10),
-          size = 5,
-          lineend = "butt"
+        data() %>%
+        mutate(
+          download_count = download_count/1000,
+          label = paste0(download_count, "k"),
+          fill = ifelse(download_count < 10,
+                             "less",
+                             "more")) %>%
+        filter(download_count != 0,
+               !is.na(download_count)) %>%
+        ggplot(
+          aes(
+            x = year_scholar,
+            fill = fill,
+            text = paste0(title, "<br>",
+                          all_authors, "<br>",
+                          journal, "<br>",
+                          "Downloads: ", label)
+          )
         ) +
-        geom_segment(
-          data = data %>% filter(download_count >= 10),
-          aes(alpha = title),
-          size = 5,
-          lineend = "butt",
-          color = "orange"
+        geom_col(
+          aes(
+            y = cites
+          )
         ) +
-        geom_text(aes(y = total_downloads + 10),
-                  size = 2.5) +
-        scale_color_gradient(low = "gray30",
-                             high = " gray90") +
-        labs(x = NULL,
-             y = NULL,
-             title = "Number of downloads") +
-        scale_y_continuous(labels = function(x) paste0(x, "k")) +
+        scale_fill_manual(values = c("less" = "gray60",
+                                     "more" = "orange")) +
         theme_minimal() +
         theme(legend.position = "none",
               panel.grid.minor.x = element_blank(),
               panel.grid.major.x = element_blank(),
-              panel.grid.minor.y = element_blank())
+              panel.grid.minor.y = element_blank()) +
+        labs(x = NULL,
+             y = NULL) + 
+        scale_y_continuous(labels = function(x) paste0(x, "k"))
 
       ggplotly(graph,
-               tooltip = "text")
+               tooltip = "text") 
     })
 
   output$table <-
@@ -262,10 +365,13 @@ server <- function(input, output, session) {
       },
       
       rownames = FALSE,
-      filter = 'top',
+      filter = 'top', 
+      extensions = 'Buttons', 
       options = list(
-        pageLength = 7,
-        lengthMenu = c(5, 10, 25, 50, 100)
+        dom = 'Bfrtip',
+        buttons = c('copy', 'csv', 'excel', 'pdf'),
+        pageLength = 10,
+        lengthMenu = c(10, 25, 50, 100)
       )
       
     )
