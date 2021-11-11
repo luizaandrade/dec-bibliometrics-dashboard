@@ -133,7 +133,7 @@ class OKRCrawler:
             print('Downloading {idx} of {total}'.format(idx = idx, total = len(handles_list)))
                     
             print('Scraping {}:'.format(handle))
-            row = craw.crawl(handle)
+            row = self.crawl(handle)
             row_list.append(row)
             idx += 1
             
