@@ -1,16 +1,13 @@
-# TODO
-#   - Catch errors
-#   - Find interval for 429 error
 
 import os
 import requests
+import random
+import pandas as pd
+
 from lxml import html
 from bs4 import BeautifulSoup
 from datetime import datetime
 from time import sleep
-
-
-import pandas as pd
 
 class OKRCrawler:
     """
@@ -35,7 +32,7 @@ class OKRCrawler:
         self.url =  self.base_url + handle
         
         # Send request for static page
-        print("Sending GET request for static page HTML...")
+        # print("Sending GET request for static page HTML...")
         
         self.page = requests.get(self.url)
         
@@ -46,8 +43,8 @@ class OKRCrawler:
             # Whoops it wasn't a 200
             error = "Error: " + str(e)
             print(error)
-        else:
-            print(" Successfully loaded static page HTML...")
+        # else:
+            # print(" Successfully loaded static page HTML...")
         finally:
             # Format html
             self.tree = html.fromstring(self.page.content)
@@ -65,10 +62,10 @@ class OKRCrawler:
         """
         Uses dsoid from static html to send API request for download and view stats
         """
-        print('Sending API request for stats JSON...')
+        # print('Sending API request for stats JSON...')
         stats_request = self.stats_request.format(dsoid = dsoid)
         stats_response = requests.get(stats_request)
-        print('Got respose with stats JSON...')
+        # print('Got respose with stats JSON...')
         return stats_response
         
     def process_json(self, json_source, list_index):
@@ -121,17 +118,24 @@ class OKRCrawler:
         return handle, citation, dsoid, abstract_views, downloads, timestamp
     
     def crawl_loop(self, 
-                   handles_list,
+                   handles_list = None,
                    export_df = True,
                    export_path = None,
                    columns = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads', 'scraping_date']):
         
+        if handles_list is None:
+            handles_list = self.df.Handle
+        
         # Loop through all handles in df
         row_list = []
+        idx = 1
         for handle in handles_list:
+            print('Downloading {idx} of {total}'.format(idx = idx, total = len(handles_list)))
+                    
             print('Scraping {}:'.format(handle))
             row = craw.crawl(handle)
             row_list.append(row)
+            idx += 1
             
             # Wait between .5 and 2s before sending another request
             sleep(round(random.uniform(.5, 2),3))
@@ -141,7 +145,8 @@ class OKRCrawler:
         
         # Export df
         if export_df:
-            filename = 'okr_results.csv'
+            today = datetime.now().strftime("%Y%m%d")
+            filename = 'okr_results-' + today + '.csv'
             path = os.getcwd()
             if export_path is not None:
                 path = export_path
@@ -149,25 +154,9 @@ class OKRCrawler:
             print('Saving results df in {}'.format(file_path))
             df.to_csv(file_path, index= False)
 
-# if __name__ == "__main__":
-#     print("Foo!")
+if __name__ == "__main__":
+    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
+    crawler.crawl_loop(handles_list = crawler.df.Handle.iloc[:5])
 
-craw = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
-# craw.df.Handle[0]
-
-# craw.crawl(craw.df.Handle)
-# craw.get_static_html(craw.df.Handle[0], export_html= True)
-
-# embed_html_elem = craw.soup.find_all("div", {"class": "embed-cua-widget"})
-# dsoid = embed_html_elem[0]["data-dso-id"]
-
-# row = craw.crawl(craw.df.Handle[44])
-
-# craw.page
-
-craw.crawl_loop(handles_list = craw.df.Handle.iloc[:4])
-
-import random
-import sleep
 
 
