@@ -2,10 +2,12 @@
 #   - Catch errors
 #   - Find interval for 429 error
 
-
+import os
 import requests
 from lxml import html
 from bs4 import BeautifulSoup
+from datetime import datetime
+
 import pandas as pd
 
 class OKRCrawler:
@@ -67,7 +69,6 @@ class OKRCrawler:
         print('Got respose with stats JSON...')
         return stats_response
         
-        pass
     def process_json(self, json_source, list_index):
         """ 
         API response is a list of ordered JSONs, first contains information on 
@@ -84,11 +85,11 @@ class OKRCrawler:
         # Sum all elements in matrix
         return sum(matrix[0])
         
-    def crawl(self, handle_list):
+    def crawl(self, handle):
         """
         Loops over handles df and sends requests for each entry
         """
-        self.get_static_html(handle_list[0])
+        self.get_static_html(handle)
         
         # Get static info --------------------------------
         
@@ -109,17 +110,34 @@ class OKRCrawler:
         # First item on json has info on abstract views
         abstract_views = self.process_json(self.json, 0)
         
-        # Thir item on json has info on n of downloads
+        # Third item on json has info on n of downloads
         downloads = self.process_json(self.json, 2)
         
+        # Download timestamp
+        timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
         
-        return citation, dsoid, abstract_views, downloads
+        return handle, citation, dsoid, abstract_views, downloads, timestamp
     
-    def create_df(self):
-        """
-        Creates all restults pandas.DataFrame for expoerting
-        """
-        pass
+    def crawl_loop(self, 
+                   handles_list,
+                   export_df = True,
+                   export_path = None,
+                   columns = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads', 'scraping_date']):
+        row_list = []
+        for handle in handles_list:
+            print('Scraping {}:'.format(handle))
+            row = craw.crawl(handle)
+            row_list.append(row)
+        df = pd.DataFrame(row_list, columns=columns)
+        
+        if export_df:
+            filename = 'okr_results.csv'
+            path = os.getcwd()
+            if export_path is not None:
+                path = export_path
+            file_path = os.path.join(path + filename)
+            print('Saving results df in {}'.format(file_path))
+            df.to_csv(file_path, index= False)
 
 # if __name__ == "__main__":
 #     print("Foo!")
@@ -133,5 +151,9 @@ craw = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
 # embed_html_elem = craw.soup.find_all("div", {"class": "embed-cua-widget"})
 # dsoid = embed_html_elem[0]["data-dso-id"]
 
-# craw.crawl(craw.df.Handle)
+# row = craw.crawl(craw.df.Handle[44])
+
 # craw.page
+
+# craw.crawl_loop(handles_list = craw.df.Handle.iloc[:4])
+
