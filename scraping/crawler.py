@@ -7,6 +7,8 @@ import requests
 from lxml import html
 from bs4 import BeautifulSoup
 from datetime import datetime
+from time import sleep
+
 
 import pandas as pd
 
@@ -123,13 +125,21 @@ class OKRCrawler:
                    export_df = True,
                    export_path = None,
                    columns = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads', 'scraping_date']):
+        
+        # Loop through all handles in df
         row_list = []
         for handle in handles_list:
             print('Scraping {}:'.format(handle))
             row = craw.crawl(handle)
             row_list.append(row)
+            
+            # Wait between .5 and 2s before sending another request
+            sleep(round(random.uniform(.5, 2),3))
+        
+        # Create a results df
         df = pd.DataFrame(row_list, columns=columns)
         
+        # Export df
         if export_df:
             filename = 'okr_results.csv'
             path = os.getcwd()
@@ -155,5 +165,9 @@ craw = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
 
 # craw.page
 
-# craw.crawl_loop(handles_list = craw.df.Handle.iloc[:4])
+craw.crawl_loop(handles_list = craw.df.Handle.iloc[:4])
+
+import random
+import sleep
+
 
