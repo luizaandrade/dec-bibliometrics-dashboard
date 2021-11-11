@@ -1,3 +1,7 @@
+# TODO
+#   - Catch errors
+#   - Find interval for 429 error
+
 
 import requests
 from lxml import html
@@ -129,5 +133,5 @@ craw = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
 # embed_html_elem = craw.soup.find_all("div", {"class": "embed-cua-widget"})
 # dsoid = embed_html_elem[0]["data-dso-id"]
 
-craw.crawl(craw.df.Handle)
-craw.page
+# craw.crawl(craw.df.Handle)
+# craw.page
