@@ -24,7 +24,7 @@ class OKRCrawler:
         # Load handles df
         self.df = pd.read_csv(self.handles_df_path)
         
-    def get_static_html(self, handle, export_html = False):
+    def get_static_html(self, handle, export_html = True):
         """
         Loads html for static page
         """
