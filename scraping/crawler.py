@@ -149,12 +149,26 @@ class OKRCrawler:
         
         row_list = []
         idx = 1
+        count_while = 0
         for handle in handles_list:
             print('Downloading {idx} of {total}'.format(idx = idx, total = len(handles_list)))
                     
             print('Scraping {}:'.format(handle))
             
             row = self.crawl(handle)
+            
+            # If too many requests, wait a bit and try again
+            while row is None:
+                # Wait until sending another request
+                sleep(60)
+                count_while +=1
+                print('Number of 429s: {}'.format(count_while))
+                
+                print('Trying again...')
+                row = self.crawl(handle)
+                if count_while > 2:
+                    break
+            # If while breaks with row is None break for loop to save results
             if row is None:
                 break
             # Otherwise contiue with loop
@@ -178,7 +192,7 @@ class OKRCrawler:
             self.results_df.to_csv(file_path, index= False)
 
 if __name__ == "__main__":
-    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', results_df = '../scrapingokr_results.csv')
+    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', results_df = '../scrapingokr_results - backup.csv')
     crawler.crawl_loop(handles_list = crawler.df.Handle)
 
 
