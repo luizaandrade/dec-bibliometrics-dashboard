@@ -132,23 +132,21 @@ class OKRCrawler:
                    columns = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads', 'scraping_date']):
         
         if handles_list is None:
-            self.handles_list = self.df.Handle
+            handles_list = self.df.Handle
         
-        # Handles list if not alredy scraped
+        # Handles list if not already scraped
         else:
-            self.handles_list = self.df['Handle'][~self.df['Handle'].isin(self.results_df['handle'])]
+            handles_list = self.df['Handle'][~self.df['Handle'].isin(self.results_df['handle'])]
         
         # Export variables df
         time = datetime.now().strftime("%m-%d-%Y-%H-%M")
-        filename = 'okr_results-' + time + '.csv'
+        # filename = 'okr_results-' + time + '.csv'
+        filename = 'okr_results.csv'
         path = os.getcwd()
         if export_path is not None:
             path = export_path
         file_path = os.path.join(path + filename)
         
-        # Loop through all handles in df
-        if handles_list is None:
-            handles_list = self.df.Handle
         row_list = []
         idx = 1
         for handle in handles_list:
@@ -163,8 +161,8 @@ class OKRCrawler:
             else:
                 row_list.append(row)
                 idx += 1
-                # Wait between .5 and 2s before sending another request
-                sleep(round(random.uniform(.5, 2),3))
+                # Wait between .1 and 1s before sending another request
+                sleep(round(random.uniform(.1, 1),2))
         
         # Create a results df            
         self.results_df_session = pd.DataFrame(row_list, columns=columns)
@@ -173,14 +171,14 @@ class OKRCrawler:
         if self.results_df is None:
             self.results_df = self.results_df_session
         else:
-            self.results_df.append(self.results_df_session)
+            self.results_df = self.results_df.append(self.results_df_session)
         
         if export_df:
             print('Saving results df in {}'.format(file_path))
             self.results_df.to_csv(file_path, index= False)
 
 if __name__ == "__main__":
-    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', results_df = '../scrapingokr_results_prem.csv')
+    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', results_df = '../scrapingokr_results.csv')
     crawler.crawl_loop(handles_list = crawler.df.Handle)
 
 
