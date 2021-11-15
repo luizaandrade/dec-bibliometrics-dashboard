@@ -144,9 +144,8 @@ class OKRCrawler:
                     
             print('Scraping {}:'.format(handle))
             
-            try:
-                row = self.crawl(handle)
-            except:
+            row = self.crawl(handle)
+            if row is None:
                 self.results_df = pd.DataFrame(row_list, columns=columns)
                 if export_df:
                     print('Interrupting loop')
@@ -171,19 +170,3 @@ if __name__ == "__main__":
     crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
     crawler.crawl_loop(handles_list = crawler.df.Handle)
 
-handle = crawler.df.Handle[5]
-crawler.crawl(handle)
-
-crawler.get_static_html(handle)
-
-# RE-write crawl to handle HTML only if 200
-
-# RE-write loop to handle exception
-
-
-try:
-    crawler.crawl(handle)
-except:
-    print("Error: do something")
-else:
-    print("Foo")
