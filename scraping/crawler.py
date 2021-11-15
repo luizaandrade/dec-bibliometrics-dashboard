@@ -143,18 +143,15 @@ class OKRCrawler:
             print('Downloading {idx} of {total}'.format(idx = idx, total = len(handles_list)))
                     
             print('Scraping {}:'.format(handle))
-            row = self.crawl(handle)
-            print(row)
             
-            # If error export as it is
-            if row is None:
+            try:
+                row = self.crawl(handle)
+            except:
                 self.results_df = pd.DataFrame(row_list, columns=columns)
-                
                 if export_df:
                     print('Interrupting loop')
                     print('Saving results df in {}'.format(file_path))
                     self.results_df.to_csv(file_path, index= False)
-                    
                 break
             # Otherwise contiue with loop
             else:
