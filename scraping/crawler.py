@@ -14,6 +14,7 @@ class OKRCrawler:
     """
     def __init__(self,
                  handles_df_path,
+                 results_df = None,
                  base_url = 'https://openknowledge.worldbank.org/handle/',
                  stats_request =  "https://openknowledge.worldbank.org//rest/statlets?dsotype=2&dsoid={dsoid}&ids%5B%5D=abstract-views&ids%5B%5D=abstract-views-past-year&ids%5B%5D=file-downloads&ids%5B%5D=file-downloads-past-year"):
         
@@ -23,6 +24,9 @@ class OKRCrawler:
         
         # Load handles df
         self.df = pd.read_csv(self.handles_df_path)
+        
+        # Load results df if any
+        self.results_df = pd.read_csv(results_df)
         
     def get_static_html(self, handle, export_html = False):
         """
@@ -126,6 +130,14 @@ class OKRCrawler:
                    export_df = True,
                    export_path = None,
                    columns = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads', 'scraping_date']):
+        
+        if handles_list is None:
+            self.handles_list = self.df.Handle
+        
+        # Handles list if not alredy scraped
+        else:
+            self.handles_list = self.df['Handle'][~self.df['Handle'].isin(self.results_df['handle'])]
+        
         # Export variables df
         time = datetime.now().strftime("%m-%d-%Y-%H-%M")
         filename = 'okr_results-' + time + '.csv'
@@ -146,11 +158,6 @@ class OKRCrawler:
             
             row = self.crawl(handle)
             if row is None:
-                self.results_df = pd.DataFrame(row_list, columns=columns)
-                if export_df:
-                    print('Interrupting loop')
-                    print('Saving results df in {}'.format(file_path))
-                    self.results_df.to_csv(file_path, index= False)
                 break
             # Otherwise contiue with loop
             else:
@@ -159,14 +166,21 @@ class OKRCrawler:
                 # Wait between .5 and 2s before sending another request
                 sleep(round(random.uniform(.5, 2),3))
         
-        # Create a results df
-        df = pd.DataFrame(row_list, columns=columns)
+        # Create a results df            
+        self.results_df_session = pd.DataFrame(row_list, columns=columns)
+        
+        # Save current progress
+        if self.results_df is None:
+            self.results_df = self.results_df_session
+        else:
+            self.results_df.append(self.results_df_session)
         
         if export_df:
             print('Saving results df in {}'.format(file_path))
             self.results_df.to_csv(file_path, index= False)
 
 if __name__ == "__main__":
-    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv')
+    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', results_df = '../scrapingokr_results_prem.csv')
     crawler.crawl_loop(handles_list = crawler.df.Handle)
+
 
