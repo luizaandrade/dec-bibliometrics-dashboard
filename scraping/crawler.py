@@ -15,12 +15,14 @@ class OKRCrawler:
     def __init__(self,
                  handles_df_path,
                  results_df = None,
+                 max_requests = None,
                  base_url = 'https://openknowledge.worldbank.org/handle/',
                  stats_request =  "https://openknowledge.worldbank.org//rest/statlets?dsotype=2&dsoid={dsoid}&ids%5B%5D=abstract-views&ids%5B%5D=abstract-views-past-year&ids%5B%5D=file-downloads&ids%5B%5D=file-downloads-past-year"):
         
         self.base_url = base_url
         self.stats_request = stats_request
         self.handles_df_path = handles_df_path
+        self.max_requests = max_requests
         
         # Load handles df
         self.df = pd.read_csv(self.handles_df_path)
@@ -130,6 +132,13 @@ class OKRCrawler:
                    export_df = True,
                    export_path = None,
                    columns = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads', 'scraping_date']):
+        """
+        Loops over list of handles to submit requests to OKR and stores results in a csv file.
+        
+        If it recieves a 429 response (too many requests) it waits an arbitrary amount before
+        sending another request.
+        
+        """
         
         if handles_list is None:
             handles_list = self.df.Handle
@@ -137,6 +146,10 @@ class OKRCrawler:
         # Handles list if not already scraped
         else:
             handles_list = self.df['Handle'][~self.df['Handle'].isin(self.results_df['handle'])]
+        
+        # Limit number of requests if that parameter is specified
+        if self.max_requests is not None:
+            handles_list =handles_list[0:(self.max_requests+1)]
         
         # Export variables df
         time = datetime.now().strftime("%m-%d-%Y-%H-%M")
@@ -147,9 +160,12 @@ class OKRCrawler:
             path = export_path
         file_path = os.path.join(path + filename)
         
-        row_list = []
-        idx = 1
-        count_while = 0
+        # Loop parameters
+        self.row_list = [] # Actual results
+        idx = 1 # Printin index
+        count_while = 0 # Keep track of 429 erros
+        
+        # Loop through items
         for handle in handles_list:
             print('Downloading {idx} of {total}'.format(idx = idx, total = len(handles_list)))
                     
@@ -163,23 +179,27 @@ class OKRCrawler:
                 sleep(60)
                 count_while +=1
                 print('Number of 429s: {}'.format(count_while))
-                
+                # Break if consecutive errors
+                if count_while > 2:
+                    print('Too many consecutive 429 responses. :/ ')
+                    break
                 print('Trying again...')
                 row = self.crawl(handle)
-                if count_while > 2:
-                    break
             # If while breaks with row is None break for loop to save results
             if row is None:
                 break
             # Otherwise contiue with loop
             else:
-                row_list.append(row)
+                self.row_list.append(row)
                 idx += 1
                 # Wait between .1 and 1s before sending another request
                 sleep(round(random.uniform(.1, 1),2))
+                
+                # If we get a successfull request reset 429 counter
+                count_while = 0
         
         # Create a results df            
-        self.results_df_session = pd.DataFrame(row_list, columns=columns)
+        self.results_df_session = pd.DataFrame(self.row_list, columns=columns)
         
         # Save current progress
         if self.results_df is None:
@@ -192,7 +212,14 @@ class OKRCrawler:
             self.results_df.to_csv(file_path, index= False)
 
 if __name__ == "__main__":
-    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', results_df = '../scrapingokr_results - backup.csv')
-    crawler.crawl_loop(handles_list = crawler.df.Handle)
+    crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', 
+                         results_df = '../scrapingokr_results.csv',
+                         max_requests=100)
+    
+    crawler.crawl_loop()
+
+# Clean duplicates (gambiarra)
+# crawler.results_df.drop_duplicates(subset = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads']).to_csv('../scrapingokr_results_BACKUP.csv', index = False)
+
 
 
