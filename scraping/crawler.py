@@ -126,7 +126,7 @@ class OKRCrawler:
     
     def crawl_loop(self, 
                    max_requests = None,
-                   base_429_wait = 60
+                   base_429_wait = 60,
                    handles_list = None,
                    export_df = True,
                    export_path = None,
@@ -183,7 +183,7 @@ class OKRCrawler:
                 print('Wait for 429 response increased to {}s'.format(base_429_wait))
                 print('Number of 429s: {}'.format(count_while))
                 # Break if consecutive errors
-                if count_while > 2:
+                if count_while > 5:
                     print('Too many consecutive 429 responses. Breaking to save results.')
                     break
                 print('Trying again...')
@@ -201,8 +201,9 @@ class OKRCrawler:
                 # If we get a successfull request reset 429 counter
                 count_while = 0
                 # Also reset base wait
-                base_429_wait = 60
-                print('Wait for 429 response reset to {}s'.format(base_429_wait))
+                if base_429_wait > 60:
+                    base_429_wait = 60
+                    print('Wait for 429 response reset to {}s'.format(base_429_wait))
                 
         # Create a results df            
         self.results_df_session = pd.DataFrame(self.row_list, columns=columns)
