@@ -1,4 +1,6 @@
 
+#------------------------------------------------------------------
+
 import os
 import requests
 import random
@@ -9,6 +11,15 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from time import sleep
 
+# Default header
+headers = {
+    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+    'Acept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7,fr;q=0.6,fr-FR;q=0.5,es;q=0.4,es-ES;q=0.3',
+    'DNT': '1', 
+}
+
+#------------------------------------------------------------------
+
 class OKRCrawler:
     """
     """
@@ -16,11 +27,15 @@ class OKRCrawler:
                  handles_df_path,
                  results_df = None,
                  base_url = 'https://openknowledge.worldbank.org/handle/',
-                 stats_request =  "https://openknowledge.worldbank.org//rest/statlets?dsotype=2&dsoid={dsoid}&ids%5B%5D=abstract-views&ids%5B%5D=abstract-views-past-year&ids%5B%5D=file-downloads&ids%5B%5D=file-downloads-past-year"):
+                 stats_request =  "https://openknowledge.worldbank.org//rest/statlets?dsotype=2&dsoid={dsoid}&ids%5B%5D=abstract-views&ids%5B%5D=abstract-views-past-year&ids%5B%5D=file-downloads&ids%5B%5D=file-downloads-past-year",
+                 headers = headers
+                 ):
         
         self.base_url = base_url
         self.stats_request = stats_request
-        self.handles_df_path = handles_df_path        
+        self.handles_df_path = handles_df_path       
+        self.header = headers
+         
         # Load handles df
         self.df = pd.read_csv(self.handles_df_path)
         
@@ -37,11 +52,11 @@ class OKRCrawler:
         # Send request for static page
         # print("Sending GET request for static page HTML...")
         
-        self.page = requests.get(self.url)
+        self.page = requests.get(self.url, headers= self.header)
         
         # Continue only if a 200 response
         try:
-            self.page .raise_for_status()
+            self.page.raise_for_status()
         except requests.exceptions.HTTPError as e:
             # Whoops it wasn't a 200
             error = "Error: " + str(e)
@@ -222,7 +237,7 @@ if __name__ == "__main__":
     crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', 
                          results_df = '../scrapingokr_results.csv')
     
-    crawler.crawl_loop(max_requests=1000)
+    crawler.crawl_loop(max_requests=2)
 
 
 # Clean duplicates (gambiarra)
