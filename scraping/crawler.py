@@ -15,15 +15,12 @@ class OKRCrawler:
     def __init__(self,
                  handles_df_path,
                  results_df = None,
-                 max_requests = None,
                  base_url = 'https://openknowledge.worldbank.org/handle/',
                  stats_request =  "https://openknowledge.worldbank.org//rest/statlets?dsotype=2&dsoid={dsoid}&ids%5B%5D=abstract-views&ids%5B%5D=abstract-views-past-year&ids%5B%5D=file-downloads&ids%5B%5D=file-downloads-past-year"):
         
         self.base_url = base_url
         self.stats_request = stats_request
-        self.handles_df_path = handles_df_path
-        self.max_requests = max_requests
-        
+        self.handles_df_path = handles_df_path        
         # Load handles df
         self.df = pd.read_csv(self.handles_df_path)
         
@@ -128,6 +125,8 @@ class OKRCrawler:
             return handle, citation, dsoid, abstract_views, downloads, timestamp
     
     def crawl_loop(self, 
+                   max_requests = None,
+                   base_429_wait = 60
                    handles_list = None,
                    export_df = True,
                    export_path = None,
@@ -139,17 +138,19 @@ class OKRCrawler:
         sending another request.
         
         """
+        self.max_requests = max_requests
         
-        if handles_list is None:
-            handles_list = self.df.Handle
+        if self.results_df is None:
+            handles_list = self.df.Handle.drop_duplicates()
         
         # Handles list if not already scraped
         else:
-            handles_list = self.df['Handle'][~self.df['Handle'].isin(self.results_df['handle'])]
+            handles_list = self.df.Handle.drop_duplicates()
+            handles_list = handles_list[~handles_list.isin(self.results_df['handle'])]
         
         # Limit number of requests if that parameter is specified
         if self.max_requests is not None:
-            handles_list =handles_list[0:(self.max_requests+1)]
+            handles_list = handles_list[0:(self.max_requests+1)]
         
         # Export variables df
         time = datetime.now().strftime("%m-%d-%Y-%H-%M")
@@ -176,12 +177,14 @@ class OKRCrawler:
             # If too many requests, wait a bit and try again
             while row is None:
                 # Wait until sending another request
-                sleep(60)
+                sleep(base_429_wait)
                 count_while +=1
+                base_429_wait += 60
+                print('Wait for 429 response increased to {}s'.format(base_429_wait))
                 print('Number of 429s: {}'.format(count_while))
                 # Break if consecutive errors
                 if count_while > 2:
-                    print('Too many consecutive 429 responses. :/ ')
+                    print('Too many consecutive 429 responses. Breaking to save results.')
                     break
                 print('Trying again...')
                 row = self.crawl(handle)
@@ -197,7 +200,10 @@ class OKRCrawler:
                 
                 # If we get a successfull request reset 429 counter
                 count_while = 0
-        
+                # Also reset base wait
+                base_429_wait = 60
+                print('Wait for 429 response reset to {}s'.format(base_429_wait))
+                
         # Create a results df            
         self.results_df_session = pd.DataFrame(self.row_list, columns=columns)
         
@@ -213,13 +219,10 @@ class OKRCrawler:
 
 if __name__ == "__main__":
     crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', 
-                         results_df = '../scrapingokr_results.csv',
-                         max_requests=100)
+                         results_df = '../scrapingokr_results.csv')
     
-    crawler.crawl_loop()
+    crawler.crawl_loop(max_requests=1000)
+
 
 # Clean duplicates (gambiarra)
-# crawler.results_df.drop_duplicates(subset = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads']).to_csv('../scrapingokr_results_BACKUP.csv', index = False)
-
-
-
+# crawler.results_df.drop_duplicates(subset = ['handle', 'citation', 'dsoid', 'abstract_views', 'downloads']).to_csv('../scrapingokr_results.csv', index = False)
