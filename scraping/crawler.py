@@ -164,7 +164,7 @@ class OKRCrawler:
             handles_list = handles_list[~handles_list.isin(self.results_df['handle'])]
         
         # Limit number of requests if that parameter is specified
-        if self.max_requests is not None:
+        if self.max_requests is not None and self.max_requests < len(handles_list):
             handles_list = handles_list[0:(self.max_requests+1)]
         
         # Export variables df
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     crawler = OKRCrawler('C:/Users/wb519128/Downloads/OKR-Data-2014-21.csv', 
                          results_df = '../scrapingokr_results.csv')
     
-    crawler.crawl_loop(max_requests=2)
+    crawler.crawl_loop(max_requests=4800)
 
 
 # Clean duplicates (gambiarra)
