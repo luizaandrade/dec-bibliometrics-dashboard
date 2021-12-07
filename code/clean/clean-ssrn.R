@@ -4,7 +4,8 @@ ssrn <-
     here("data",
          "raw",
          "ssrn.rds")
-  )
+  ) %>%
+  unique
 
 max_ref <-
   ssrn %>%
@@ -31,11 +32,11 @@ prwp_id <-
            sep = "[,;]") %>%
   pivot_longer(cols = starts_with("ref_"),
                values_to = "reference") %>%
-  filter(str_detect(reference, "Policy Research Working Paper")) %>%
+  filter(str_detect(reference, "World Bank Policy Research")) %>%
   mutate(prwp_id = 
            reference %>%
            str_remove_all("[.]") %>%
-           extract_numeric()) %>%
+           parse_number()) %>%
   select(id, prwp_id) %>%
   unique
 
@@ -58,13 +59,15 @@ ssrn_authors <-
   select(id, authors) %>% 
   rename(ssrn_id = id) %>%
   unnest(cols = c(authors)) %>%
-  rename(ssrn_author_id = id)
+  rename(ssrn_author_id = id) %>%
+  mutate(full_name = paste(first_name, last_name))
 
 
 write_rds(ssrn_papers,
           here("data",
                "intermediate",
                "ssrn_papers.rds"))
+
 write_csv(ssrn_papers,
           here("data",
                "intermediate",

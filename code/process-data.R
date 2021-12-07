@@ -5,7 +5,7 @@ packages <-
     "scholar",
     "tidyverse",
     "here",
-    "fuzzyjoin"
+    
   )
 
 pacman::p_load(packages,
@@ -20,11 +20,7 @@ okr <-
 rg <-
   read_csv(here("data", "decrg_staff.csv"))
 
-scholar <-
-  read_csv(here("data", "citations.csv")) %>%
-  rename(full_name = main,
-         all_authors = author) %>%
-  filter(year >= 2000)
+
 
 # Process OKR data ------------------------------------------------------------
 
