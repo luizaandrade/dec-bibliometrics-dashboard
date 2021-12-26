@@ -3,7 +3,12 @@ packages <-
     "here",
     "tidyverse",
     "fuzzyjoin",
-    "scholar"
+    "scholar",
+    "assertthat",
+    "readxl",
+    "curl",
+    "rvest",
+    "xlsx"
   )
 
 pacman::p_load(
