@@ -51,7 +51,7 @@ ssrn_papers <-
   ) %>%
   left_join(prwp_id) %>%
   rename(ssrn_id = id,
-         ssrn_downalods = downloads,
+         ssrn_downloads = downloads,
          ssrn_url = url)
 
 ssrn_authors <-

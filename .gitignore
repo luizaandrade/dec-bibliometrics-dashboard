@@ -2,3 +2,4 @@ data/**/**
 output/**/**
 *.html
 *.csv
+.Rproj.user
