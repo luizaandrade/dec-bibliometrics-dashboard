@@ -4,11 +4,12 @@ library(shinycssloaders)
 library(shinyWidgets)
 library(bs4Dash)
 library(fresh)
-require(DT)
-require(here)
-require(plotly)
-require(tidyverse)
+library(DT)
+library(here)
+library(plotly)
+library(tidyverse)
 
+here::i_am("app.R")
 
 prwp <- 
   read_rds(here("data", "final", "prwp_downloads.rds")) %>%
@@ -24,7 +25,7 @@ ui <-
     dashboardHeader(
       
       title = dashboardBrand(
-        title = "Policy Research Working Paper Series: Bibliometrics",
+        title = "PRWP Bibliometrics",
         color = "info"
       ),
       skin = "light",
@@ -44,6 +45,20 @@ ui <-
       status = "info", 
       skin = "light", 
       elevation = 5, 
+      
+      tags$style(
+        ".irs--shiny .irs-bar {
+          border-top-color: #c2eaf1;
+          border-bottom-color: #c2eaf1;
+          background: #c2eaf1;
+        }
+        
+        .irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single {
+          background-color: #6c757d;
+        }
+
+        " 
+      ),
       
       ## Menu ------------------------------------------------------------------
       
@@ -88,14 +103,22 @@ ui <-
               status = "info", 
               collapsible = FALSE,
               solidHeader = TRUE,
-              title = h2("POLICY RESEARCH WORKING PAPER BIBLIOMETRICS DASHBOARD"),
+              title = h2("Policy Research Working Paper Series: Bibliometrics"),
               
               p("This dashboard presents information about publications from the World Bank's Policy Research
                 Working Paper Series. 
-                The data used was harvested from the SSRN, the World Bank's Open Knowledge Repository,
-                and the World Bank's Documents and Reports webpage.
-                Only the data that was already labeled in these sources in included, and the data set may be
-                incomplete."
+                The data used was harvested from the",
+                tags$a("SSRN",
+                       href = "https://www.ssrn.com/"),
+                "the World Bank's",
+                tags$a("Open Knowledge Repository,",
+                       href = "https://openknowledge.worldbank.org/"),
+                "and the World Bank's",
+                tags$a("Documents and Reports",
+                       href = "https://documents.worldbank.org/en/publication/documents-reports"),
+                "webpage.
+                Only the data that was already labeled in these sources in included.
+                Therefore, this data set is not exhaustive."
               ),
               
               h3("How to use this dashboard"),
@@ -107,18 +130,6 @@ ui <-
                 over time. The ",
                 tags$b("Data"),
                 "page allows users to browse and download the data feeding into the graphs."
-              )
-            ),
-            
-            box(
-              width = 12, 
-              status = "warning", 
-              collapsible = TRUE,
-              title = "Disclaimer",
-              solidHeader = TRUE,
-              
-              p(
-                "The data in this dashboard was obtained by scraping the internet, and is not exhaustive."
               )
             ),
             
@@ -153,22 +164,28 @@ ui <-
               collapsed = TRUE
             )
           ),
-          
+        
           fluidRow(
             box(
               width = 10,
               title = "Downloads",
               
               fluidRow(
-                tags$b("Source: "),
+                tags$style(
+                  type = "text/css", 
+                  "#label {text-align: center; font-size: 16px; padding-top:5px; vertical-align: middle;}"),
+                tags$div(
+                  id = "label",
+                  tags$b("Source: ")
+                ),
                 pickerInput(
                   "source",
                   label = NULL,
-                  choices = c("Total downloads",
+                  choices = c("Total downloads (SSRN, D&R, OKR)",
                               "SSRN",
                               "Documents & Reports",
                               "Open Knowledge Repository"),
-                  selected = "Total downloads",
+                  selected = "Total downloads (SSRN, D&R, OKR)",
                   width = "80%",
                   inline = TRUE
                 )
@@ -219,7 +236,7 @@ server <- function(input, output, session) {
       
       var <-
         case_when(
-          input$source == "Total downloads" ~ "total_downloads",
+          input$source == "Total downloads (SSRN, D&R, OKR)" ~ "total_downloads",
           input$source == "SSRN" ~ "ssrn_downloads",
           input$source == "Documents & Reports" ~ "dandr_downloads",
           input$source == "Open Knowledge Repository" ~ "okr_downloads"
@@ -235,10 +252,16 @@ server <- function(input, output, session) {
                         "more")) %>%
         filter(download_count != 0,
                !is.na(download_count)) %>%
+        group_by(year) %>%
+        mutate(
+          count_year = sum(download_count, na.rm = TRUE),
+          label_year = paste0(round(count_year, 1), "k")
+        ) %>%
         ggplot(
           aes(
             x = year,
             fill = fill,
+            label = label,
             text = paste0(title, "<br>",
                           author, "<br>",
                           input$source, " downloads: ", label)
@@ -249,8 +272,15 @@ server <- function(input, output, session) {
             y = download_count
           )
         ) +
+        geom_text(
+          aes(
+            y = count_year + 10,
+            label = label_year
+          ),
+          size = 2.5,
+        ) +
         scale_fill_manual(values = c("less" = "gray60",
-                                     "more" = "orange")) +
+                                     "more" = "#ecb05a")) +
         theme_minimal() +
         theme(legend.position = "none",
               panel.grid.minor.x = element_blank(),
@@ -275,11 +305,20 @@ server <- function(input, output, session) {
           aes(
             x = year,
             y = count,
-            label = count
+            label = count,
+            text = paste(
+              "Year:", year, "<br>",
+              "Papers published:", count
+            )
           )
         ) +
-        geom_col() +
-        geom_text() +
+        geom_col(fill = "#ecb05a") +
+        geom_text(
+          aes(
+            y = count + 5
+          ),
+          size = 3
+        ) +
         theme_minimal() +
         theme(legend.position = "none",
               panel.grid.minor.x = element_blank(),
@@ -289,7 +328,7 @@ server <- function(input, output, session) {
              y = NULL)
       
       ggplotly(graph,
-               tooltip = NULL)
+               tooltip = "text")
     })
 
   output$table <-
