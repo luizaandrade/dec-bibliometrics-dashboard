@@ -1,20 +1,37 @@
+library(plotly)
+library(tidyverse)
 library(shiny)
 library(shinydashboard)
 library(shinycssloaders)
 library(shinyWidgets)
 library(bs4Dash)
 library(fresh)
-library(DT)
 library(here)
-library(plotly)
-library(tidyverse)
+library(DT)
 
-here::i_am("app.R")
+prwp_table <- 
+  read_rds(
+    here(
+      "data",
+      "prwp_table.rds"
+    )
+  )
+
+prwp_year <- 
+  read_rds(
+    here(
+      "data",
+      "prwp_year.rds"
+    )
+  )
 
 prwp <- 
-  read_rds(here("data", "final", "prwp_downloads.rds")) %>%
-  filter(year <= 2021)
-
+  read_rds(
+    here(
+      "data",
+      "prwp_downloads.rds"
+    )
+  )
 
 ui <- 
   
@@ -77,11 +94,11 @@ ui <-
       sliderTextInput(
         "years",
         "Period",
-        choices = seq(min(prwp$year, na.rm = TRUE),
-                      max(prwp$year, na.rm = TRUE),
+        choices = seq(min(prwp_year$year, na.rm = TRUE),
+                      max(prwp_year$year, na.rm = TRUE),
                       1),
-        selected = c(min(prwp$year, na.rm = TRUE),
-                     max(prwp$year, na.rm = TRUE))
+        selected = c(min(prwp_year$year, na.rm = TRUE),
+                     max(prwp_year$year, na.rm = TRUE))
       )
     ),
     
@@ -121,15 +138,37 @@ ui <-
                 Therefore, this data set is not exhaustive."
               ),
               
-              h3("How to use this dashboard"),
+              h4("How to use this dashboard"),
               
               p(
                 "Use the icons in the sidebar to navigate through different pages. The ",
                 tags$b("Visualization"),
                 "page contains interactive plots with the evolution of the total number of downloads and citations
-                over time. The ",
+                over time hover over data points to see information about each paper. The ",
                 tags$b("Data"),
                 "page allows users to browse and download the data feeding into the graphs."
+              ),
+              
+              h4("Highlights"),
+              
+              p(
+                tags$b(
+                  'Most downloaded paper of all time:'
+                ),
+                tags$a(
+                  '"The Role of Education Quality for Economic Growth", by Eric Hanushek and Ludger Woessman',
+                  href = "https://openknowledge.worldbank.org/handle/10986/7154"
+                )
+              ),
+              
+              p(
+                tags$b(
+                  "Most downloaded paper, adjusting for age:"
+                ),
+                tags$a(
+                  '"Elite Capture of Foreign Aid: Evidence from Offshore Bank Accounts", by Jorgen Juel Andersen, Niels Johannesen, and Bob Rijkers',
+                  href = "https://openknowledge.worldbank.org/handle/10986/33355"
+                )
               )
             ),
             
@@ -137,9 +176,8 @@ ui <-
               width = 12, 
               status = "secondary", 
               collapsible = TRUE,
-              collapsed = TRUE,
               title = "Contributors",
-              solidHeader = TRUE,
+              solidHeader = FALSE,
               
               p(
                 "This dashboard was developed by Luiza Cardoso de Andrade. 
@@ -159,8 +197,26 @@ ui <-
           fluidRow(
             box(
               width = 10,
-              title = "Papers published",
-              plotlyOutput("published", height = "700px"),
+              title = "Total number of downloads for a paper",
+              plotlyOutput("total_downloads", height = "600px"),
+              collapsed = FALSE
+            )
+          ),
+          
+          fluidRow(
+            box(
+              width = 10,
+              title = "Average number of downloads for a paper per year since publication",
+              plotlyOutput("downloads_per_year", height = "600px"),
+              collapsed = TRUE
+            )
+          ),
+          
+          fluidRow(
+            box(
+              width = 10,
+              title = "Number of papers published by year",
+              plotlyOutput("published", height = "600px"),
               collapsed = TRUE
             )
           ),
@@ -168,7 +224,8 @@ ui <-
           fluidRow(
             box(
               width = 10,
-              title = "Downloads",
+              collapsed = TRUE,
+              title = "Number of download by year of publication",
               
               fluidRow(
                 tags$style(
@@ -192,7 +249,7 @@ ui <-
                 
               ),
               
-              plotlyOutput("downloads", height = "700px")
+              plotlyOutput("downloads", height = "600px")
             )
           )
         ),
@@ -220,21 +277,21 @@ ui <-
 
 
 server <- function(input, output, session) {
+
   
-  
-  
-  data <-
-    reactive(
-      prwp %>%
-        filter(
-          year %in% as.numeric(input$years[1]):as.numeric(input$years[2])
-        )
+  downloads_reactive <-
+    eventReactive(
+      input$years,
+      {
+        prwp %>%
+          filter(year %in% as.numeric(input$years[1]):as.numeric(input$years[2]))
+      }
     )
   
   output$downloads <-
     renderPlotly({
       
-      var <-
+      source <-
         case_when(
           input$source == "Total downloads (SSRN, D&R, OKR)" ~ "total_downloads",
           input$source == "SSRN" ~ "ssrn_downloads",
@@ -242,40 +299,35 @@ server <- function(input, output, session) {
           input$source == "Open Knowledge Repository" ~ "okr_downloads"
         ) 
 
+      data <- 
+        read_rds(
+          here(
+            "data",
+            paste0(source, ".rds")
+          )
+        )
+      
       graph <-
-        data() %>%
-        mutate(
-          download_count = get(var)/1000,
-          label = paste0(round(download_count, 1), "k"),
-          fill = ifelse(download_count < 10,
-                        "less",
-                        "more")) %>%
-        filter(download_count != 0,
-               !is.na(download_count)) %>%
-        group_by(year) %>%
-        mutate(
-          count_year = sum(download_count, na.rm = TRUE),
-          label_year = paste0(round(count_year, 1), "k")
+        data %>%
+        filter(
+          year %in% as.numeric(input$years[1]):as.numeric(input$years[2])
         ) %>%
         ggplot(
           aes(
             x = year,
             fill = fill,
-            label = label,
-            text = paste0(title, "<br>",
-                          author, "<br>",
-                          input$source, " downloads: ", label)
+            label = label_year,
+            text = text
           )
         ) +
         geom_col(
           aes(
-            y = download_count
+            y = downloads
           )
         ) +
         geom_text(
           aes(
-            y = count_year + 10,
-            label = label_year
+            y = count_year + 10
           ),
           size = 2.5,
         ) +
@@ -288,7 +340,7 @@ server <- function(input, output, session) {
               panel.grid.minor.y = element_blank()) +
         labs(x = NULL,
              y = NULL) +
-        scale_y_continuous(labels = function(x) paste0(x, "k"))
+        scale_y_continuous(labels = function(x) ifelse(x > 0, paste0(x, "k"), x))
 
       ggplotly(graph,
                tooltip = "text")
@@ -298,9 +350,10 @@ server <- function(input, output, session) {
     renderPlotly({
       
       graph <-
-        data() %>%
-        group_by(year) %>%
-        summarise(count = n_distinct(prwp_id)) %>%
+        prwp_year %>%
+        filter(
+          year %in% as.numeric(input$years[1]):as.numeric(input$years[2])
+        ) %>%
         ggplot(
           aes(
             x = year,
@@ -330,27 +383,134 @@ server <- function(input, output, session) {
       ggplotly(graph,
                tooltip = "text")
     })
+  
+  output$total_downloads <-
+    renderPlotly({
+      
+      data <-
+        downloads_reactive() %>%
+        mutate(
+          bin = floor(total_downloads/1000),
+          threshold = quantile(total_downloads, .995),
+          more = total_downloads > threshold
+        ) %>%
+        group_by(bin) %>%
+        mutate(count = n()) %>%
+        ungroup %>%
+        mutate(height = runif(count, 0, count)) 
+      
+      graph <-
+        data %>%
+        ggplot(
+          aes(
+            x = total_downloads,
+            y = height,
+            text = paste(
+              "Title:", title, "<br>",
+              "Authors:", author, "<br>",
+              "Date published:", date, "<br>",
+              "Total downloads:", total_downloads
+            )
+          )
+        ) + 
+        geom_jitter(
+          data = 
+            data %>% 
+            filter(
+              more
+            ),
+          color = "#ecb05a",
+          size = 2,
+          alpha = .5
+        ) + 
+        geom_jitter(
+          data = data %>% 
+            filter(
+              !more
+            ),
+          color = "grey",
+          size = .5,
+          alpha = .2
+        ) +
+        theme_minimal() +
+        labs(
+          y = "Number of papers",
+          x = "Total downloads"
+        ) +
+        scale_x_continuous(labels = function(x) ifelse(x > 0, paste0(x/1000, "k"), x)) +
+        scale_y_continuous(labels = function(x) ifelse(x > 0, paste0(x/1000, "k"), x))
+      
+      ggplotly(graph,
+               tooltip = "text")
+    })
+  
+  output$downloads_per_year <-
+    renderPlotly({
+      
+      data <-
+        downloads_reactive() %>%
+        mutate(
+          bin = floor(downloads_per_year/500),
+          threshold = quantile(downloads_per_year, .995),
+          more = downloads_per_year > threshold
+        ) %>%
+        group_by(bin) %>%
+        mutate(count = n()) %>%
+        ungroup %>%
+        mutate(height = runif(count, 0, count)) 
+      
+      graph <-
+        data %>%
+        ggplot(
+          aes(
+            x = downloads_per_year,
+            y = height,
+            text = paste(
+              "Title:", title, "<br>",
+              "Authors:", author, "<br>",
+              "Date published:", date, "<br>",
+              "Average number of downloads per year:", downloads_per_year
+            )
+          )
+        ) + 
+        geom_jitter(
+          data = data %>% 
+            filter(more),
+          aes(
+            y = 0
+          ),
+          color = "#ecb05a",
+          size = 2,
+          alpha = .5
+        ) + 
+        geom_jitter(
+          data = data %>% 
+            filter(!more),
+          color = "grey",
+          size = .5,
+          alpha = .2
+        ) +
+        theme_minimal() +
+        labs(
+          y = "Number of papers",
+          x = "Average number of downloads per year"
+        ) +
+        scale_x_continuous(labels = function(x) ifelse(x > 0, paste0(x/1000, "k"), x))
+      
+      ggplotly(graph,
+               tooltip = "text")
+    })
 
   output$table <-
     renderDataTable(
-
+      
+      server = FALSE,
+      
       {
-        data() %>%
-          transmute(
-            Title = title,
-            Authors = author,
-            `Date published` = date,
-            Year = year,
-            `WPS#` = prwp_id,
-            `Total downloads` = total_downloads,
-            `Downloads from SSRN` = ssrn_downloads,
-            `SSRN ID` = ssrn_id,
-            `Downloads from OKR` = okr_downloads,
-            `Abstract views in OKR` = okr_abstract_views,
-            `OKR handle` = okr_handle,
-            `Downloads from D&R` = dandr_downloads
-          ) %>%
-          arrange(`WPS#`)
+        prwp_table  %>%
+          filter(
+            Year %in% as.numeric(input$years[1]):as.numeric(input$years[2])
+          )
       },
 
       rownames = FALSE,
@@ -358,7 +518,18 @@ server <- function(input, output, session) {
       extensions = 'Buttons',
       options = list(
         dom = 'Bfrtip',
-        buttons = c('copy', 'csv', 'excel', 'pdf'),
+        buttons = list(
+          list(extend = "csv", text = "Download Current Page", filename = "page",
+               exportOptions = list(
+                 modifier = list(page = "current")
+               )
+          ),
+          list(extend = "csv", text = "Download Full Data Set", filename = "data",
+               exportOptions = list(
+                 modifier = list(page = "all")
+               )
+          )
+        ),
         pageLength = 10,
         lengthMenu = c(10, 25, 50, 100)
       )
