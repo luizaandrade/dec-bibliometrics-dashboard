@@ -98,6 +98,9 @@ prwp <-
         starts_with("cites")
       ),
     by = "pubid"
+  ) %>%
+  arrange(
+    date
   )
 
 write_csv(
