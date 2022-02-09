@@ -90,11 +90,11 @@ prwp <-
   left_join(
     citations_history %>%
       select(
-        cites,
         pubid,
         journal,
         number,
         cid,
+        cites,
         starts_with("cites")
       ),
     by = "pubid"
