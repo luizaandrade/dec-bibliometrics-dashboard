@@ -1,5 +1,7 @@
-data/**/**
+*.rds
+*.xlsx
+*.dta
+
 output/**/**
 *.html
-*.csv
 .Rproj.user
