@@ -1,5 +1,6 @@
 library(plotly)
 library(tidyverse)
+library(fontawesome)
 library(shiny)
 library(shinydashboard)
 library(shinycssloaders)
@@ -99,6 +100,20 @@ ui <-
                       1),
         selected = c(min(prwp_year$year, na.rm = TRUE),
                      max(prwp_year$year, na.rm = TRUE))
+      ),
+      
+      hr(),
+      
+      tags$a(
+        fa(
+          name = "github",
+          fill = "#6c757d",
+          height = "2em"
+        ),
+        href = "https://github.com/worldbank/dec-bibliometrics-dashboard/tree/main",
+        target = "_blank",
+        title = "View source code",
+        style = "text-align: center; position: fixed; bottom: 2rem; left: 1.5rem"
       )
     ),
     
@@ -140,15 +155,22 @@ ui <-
               
               h4("How to use this dashboard"),
               
-              p(
-                "Use the icons in the sidebar to navigate through different pages. The ",
-                tags$b("Visualization"),
-                "page contains interactive plots with the evolution of the total number of downloads and citations
-                over time hover over data points to see information about each paper. The ",
-                tags$b("Data"),
-                "page allows users to browse and download the data feeding into the graphs."
-              ),
+              p("Use the icons in the sidebar to navigate through different pages."),
               
+              tags$ul(
+                tags$li(
+                  "The",
+                  tags$b("Visualization"),
+                  "page contains interactive plots with the evolution of the total number of downloads and citations over 
+                  time hover over data points to see information about each paper."
+                ),
+                tags$li(
+                  "The",
+                  tags$b("Data"),
+                  "page allows users to browse and download the data feeding into the graphs."
+                )
+              ),
+
               h4("Highlights"),
               
               p(
@@ -170,22 +192,7 @@ ui <-
                   href = "https://openknowledge.worldbank.org/handle/10986/33355"
                 )
               )
-            ),
-            
-            box(
-              width = 12, 
-              status = "secondary", 
-              collapsible = TRUE,
-              title = "Contributors",
-              solidHeader = FALSE,
-              
-              p(
-                "This dashboard was developed by Luiza Cardoso de Andrade. 
-                Rony Rodrigo Maximiliano Rodriguez-Ramirez and Leonardo Viotti contributed with webscraping code.
-                Roula Yazigi and Ryan Hahn contributed with data and background information on the publications."
-              )
             )
-            
           )
         ),
         
