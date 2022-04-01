@@ -14,6 +14,45 @@ id <- "fcQenm4AAAAJ"
 
 publications <- get_publications(id)
 
+max_ids <-
+  publications %>%
+  transmute(
+    count = str_count(cid, ",")
+  ) %>%
+  summarise(
+    max = max(count, na.rm = T)
+  ) %>%
+  unlist
+  
+
+publications_ungrouped <-
+  publications %>%
+  select(
+    pubid,
+    cid
+  ) %>%
+  separate(
+    cid,
+    into = paste("cid", 1:max_ids),
+    sep = ","
+  ) %>%
+  pivot_longer(
+    cols = starts_with("cid"),
+    names_to = "id",
+    values_to = "cid"
+  ) %>%
+  select(-id) %>%
+  filter(
+    !is.na(cid)
+  )
+
+all_titles <-
+  map(
+    publications_ungrouped$cid, 
+    ~ get_titles(.)
+  ) %>%
+  bind_rows
+
 citations_history <-
   map(
     publications$pubid, 

@@ -35,3 +35,76 @@ function (id, article) {
   return(df)
 
 }
+
+get_titles <-
+  function (cid) {
+    
+    site <- getOption("scholar_site")
+    
+    url <- paste0(site, "/scholar?oi=bibs&hl=en&cluster=", cid)
+    res <- get_scholar_resp(url)
+    
+    if (is.null(res)) {
+      return(NA)
+    }
+    else {
+      doc <- read_html(res)
+      
+      titles <- 
+        doc %>% 
+        html_nodes(".gs_rt") %>% 
+        html_nodes("a") %>% 
+        html_text()
+      
+      if (is_empty(titles)) {
+        titles <- 
+          doc %>% 
+          html_nodes(".gs_rt") %>% 
+          html_text() %>%
+          str_remove_all("\\[CITATION\\]")%>%
+          str_remove_all("\\[C\\]")
+      }
+      
+      info <- 
+        doc %>% 
+        html_nodes(".gs_a") %>% 
+        html_text() %>%
+        as.data.frame() %>%
+        separate(
+          col = ".",
+          sep = "-",
+          into = c("author")
+        ) 
+      
+      cites <-
+        doc %>% 
+        html_nodes(".gs_fl") %>% 
+        html_text() %>%
+        as.data.frame() %>%
+        filter(
+          str_detect(., "Cite")
+        ) %>%
+        transmute(
+          cites = parse_number(.)
+        )
+      
+      attributes(cites) <- NULL
+      
+      data <-
+        bind_cols(
+          titles, 
+          info,
+          cites
+        )
+      
+      names(data) <- c("title", "author", "cites")
+      
+      data <-
+        data %>%
+        mutate(cid = cid) %>%
+        mutate_all(
+          ~ str_trim(.)
+        )
+      
+    }
+  }
