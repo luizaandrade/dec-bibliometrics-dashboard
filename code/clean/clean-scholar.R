@@ -16,6 +16,16 @@ scholar_paper <-
   ungroup
 
 scholar_paper %>%
-  filter(duplicated(title)) %>%
+  group_by(title) %>%
+  filter(n() > 1) %>%
   arrange(title) %>%
   view
+
+write_rds(
+  scholar_paper,
+  here(
+    "data",
+    "intermediate",
+    "clean_scholar_papers.rds"
+  )
+)

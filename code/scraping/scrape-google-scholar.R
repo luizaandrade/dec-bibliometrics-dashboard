@@ -15,7 +15,7 @@ ids <-
   select(scholar_id) %>%
   unique
 
-# Get data ----------------------------------------------------------------
+# Get list of publications -----------------------------------------------------
 
 scholar_data <- 
   ids %>% 

@@ -1,0 +1,13 @@
+name: prwp_bibliometrics
+title: PRWP Bibliometrics
+username: luizaandrade
+account: luizaandrade
+server: w0lxopshyprd1b.worldbank.org
+hostUrl: http://w0lxopshyprd1b.worldbank.org:3939/__api__
+appId: 841
+bundleId: 43593
+url: http://w0lxopshyprd1b.worldbank.org:3939/prwp/
+when: 1642723202.33948
+lastSyncTime: 1642723202.33948
+asMultiple: FALSE
+asStatic: FALSE
