@@ -102,7 +102,7 @@ ui <-
                      max(prwp_year$year, na.rm = TRUE))
       ),
       
-      hr(),
+    ## Link to repo ---------------------------------------------------------
       
       tags$a(
         fa(
