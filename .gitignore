@@ -1,6 +1,7 @@
 *.rds
 *.xlsx
 *.dta
+*.csv 
 
 output/**/**
 *.html
