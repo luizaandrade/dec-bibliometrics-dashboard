@@ -1,3 +1,5 @@
+# Load packages --------------------------------------------------------------
+
 library(plotly)
 library(tidyverse)
 library(fontawesome)
@@ -9,6 +11,8 @@ library(bs4Dash)
 library(fresh)
 library(here)
 library(DT)
+
+# Load data ------------------------------------------------------------------
 
 prwp_table <- 
   read_rds(
@@ -34,6 +38,8 @@ prwp <-
     )
   )
 
+# User interface ---------------------------------------------------------------
+
 ui <- 
   
   dashboardPage(
@@ -55,7 +61,7 @@ ui <-
       
     ),
     
-    # Side bar -------------------------------------------------------------------- 
+    ## Side bar -------------------------------------------------------------------- 
     
     dashboardSidebar(
       
@@ -78,7 +84,7 @@ ui <-
         " 
       ),
       
-      ## Menu ------------------------------------------------------------------
+      ### Menu ------------------------------------------------------------------
       
       sidebarMenu(
         menuItem("Home", tabName = "home", icon = icon("bookmark")),
@@ -86,11 +92,11 @@ ui <-
         menuItem("Data", tabName = "data", icon = icon("table"))
       ),
       
-      ## Filters --------------------------------------------------------------
+      ### Filters --------------------------------------------------------------
       
       hr(),
       
-      ### Years -------------------------------------------------------------- 
+      #### Years -------------------------------------------------------------- 
       
       sliderTextInput(
         "years",
@@ -102,7 +108,7 @@ ui <-
                      max(prwp_year$year, na.rm = TRUE))
       ),
       
-    ## Link to repo ---------------------------------------------------------
+    ### Link to repo ---------------------------------------------------------
       
       tags$a(
         fa(
@@ -117,13 +123,13 @@ ui <-
       )
     ),
     
-    # Body -------------------------------------------------------------------------
+    ## Body -------------------------------------------------------------------------
     
     dashboardBody(
       
       tabItems(
         
-        ## Home  -----------------------------------------------------------------------
+        ### Home  -----------------------------------------------------------------------
         
         tabItem(
           tabName = "home",
@@ -196,7 +202,7 @@ ui <-
           )
         ),
         
-        ## Graphs ----------------------------------------------------------------------
+        ### Graphs ----------------------------------------------------------------------
         
         tabItem(
           tabName = "viz",
@@ -261,7 +267,7 @@ ui <-
           )
         ),
         
-        ## Data table ------------------------------------------------------------------        
+        ### Data table ------------------------------------------------------------------        
         
         tabItem(
           
@@ -282,9 +288,12 @@ ui <-
     )
   )
 
+# Server -----------------------------------------------------------------------
 
 server <- function(input, output, session) {
 
+  
+  ## Reactive objects ---------------------------------------------
   
   downloads_reactive <-
     eventReactive(
@@ -294,6 +303,8 @@ server <- function(input, output, session) {
           filter(year %in% as.numeric(input$years[1]):as.numeric(input$years[2]))
       }
     )
+  
+  ## Donwloads graph --------------------------------------------------------
   
   output$downloads <-
     renderPlotly({
@@ -353,6 +364,8 @@ server <- function(input, output, session) {
                tooltip = "text")
     })
   
+  ## Publications graph --------------------------------------------
+  
   output$published <-
     renderPlotly({
       
@@ -390,6 +403,8 @@ server <- function(input, output, session) {
       ggplotly(graph,
                tooltip = "text")
     })
+  
+  # Total downloads graph --------------------------------------------------- 
   
   output$total_downloads <-
     renderPlotly({
@@ -451,6 +466,7 @@ server <- function(input, output, session) {
                tooltip = "text")
     })
   
+  ## Downloads per year graph ------------------------------------------------
   output$downloads_per_year <-
     renderPlotly({
       
@@ -508,6 +524,7 @@ server <- function(input, output, session) {
                tooltip = "text")
     })
 
+  ## Data table ------------------------------------------------------------
   output$table <-
     renderDataTable(
       
@@ -546,5 +563,6 @@ server <- function(input, output, session) {
   
 }
 
+# Render app --------------------------------------------------
 
 shinyApp(ui = ui, server = server)
