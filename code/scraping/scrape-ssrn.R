@@ -3,8 +3,10 @@ packages <-
     "tidyverse",
     "here")
 
-pacman::p_load(packages,
-               character.only	= TRUE)
+pacman::p_load(
+  packages,
+  character.only	= TRUE
+)
 
 first_page <- fromJSON("https://api.ssrn.com/content/v1/journals/547001/papers")
 n_papers <- first_page$total
@@ -24,7 +26,11 @@ for (i in 0:n_pages) {
   }
 }
 
-write_rds(all_papers,
-          here("data",
-               "raw",
-               "ssrn.rds"))
+write_rds(
+  all_papers,
+  here(
+    "data",
+    "raw",
+    "ssrn.rds"
+  )
+)

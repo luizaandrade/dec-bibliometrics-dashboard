@@ -1,4 +1,5 @@
 
+library(scholar)
 # This code is based on work available at https://github.com/RRMaximiliano/wb_citations
 
 # Read IDs ----------------------------------------------------------------
